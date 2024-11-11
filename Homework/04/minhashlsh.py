@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-
+from math import ceil
 
 from minhash import MinHash
 
@@ -14,8 +14,21 @@ class MinHashLSH(MinHash):
         '''
         Возвращает массив из бакетов, где каждый бакет представляет собой N строк матрицы сигнатур.
         '''
-        # TODO:
-        return 
+        
+        minhash_buckets = []
+        
+        bucket_size = ceil(minhash.shape[0]/self.num_buckets)
+
+        start_index = 0
+
+        while start_index + bucket_size < minhash.shape[0]:
+            minhash_buckets.append(minhash[start_index: start_index + bucket_size, :])
+            start_index+= bucket_size
+
+        if start_index < minhash.shape[0]:
+            minhash_buckets.append(minhash[start_index: , :])
+    
+        return np.array(minhash_buckets, dtype=object)
     
     def get_similar_candidates(self, buckets) -> list[tuple]:
         '''
@@ -23,7 +36,34 @@ class MinHashLSH(MinHash):
         Кандидаты похожи, если полностью совпадают мин хеши хотя бы в одном из бакетов.
         Возвращает список из таплов индексов похожих документов.
         '''
-        # TODO:
+        
+        if self.num_permutations < self.num_buckets:
+            all_pairs = []
+            for i in range(self.num_permutations):
+                for j in range(i+1, self.num_permutations):
+                    all_pairs.append((i,j))
+
+            return all_pairs
+
+        similar_candidates = []
+
+        for bucket in buckets:
+            rows, cols = bucket.shape
+
+            for c in range(cols):
+                for c_next in range(c+1, cols):
+                    if (c, c_next) in similar_candidates:
+                        continue
+
+                    flag = True
+                    for r in range(rows):
+                        if bucket[r][c] != bucket[r][c_next]:
+                            flag = False
+                            break
+
+                    if flag == True:
+                        similar_candidates.append((c, c_next))
+
         return similar_candidates
         
     def run_minhash_lsh(self, corpus_of_texts: list[str]) -> list[tuple]:
