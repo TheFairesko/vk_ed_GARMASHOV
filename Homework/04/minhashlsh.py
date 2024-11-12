@@ -17,7 +17,7 @@ class MinHashLSH(MinHash):
         
         minhash_buckets = []
         
-        bucket_size = ceil(minhash.shape[0]/self.num_buckets)
+        bucket_size = ceil(minhash.shape[0]/min(self.num_buckets, self.num_permutations))
 
         start_index = 0
 
@@ -36,14 +36,6 @@ class MinHashLSH(MinHash):
         Кандидаты похожи, если полностью совпадают мин хеши хотя бы в одном из бакетов.
         Возвращает список из таплов индексов похожих документов.
         '''
-        
-        if self.num_permutations < self.num_buckets:
-            all_pairs = []
-            for i in range(self.num_permutations):
-                for j in range(i+1, self.num_permutations):
-                    all_pairs.append((i,j))
-
-            return all_pairs
 
         similar_candidates = []
 
