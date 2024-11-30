@@ -8,9 +8,18 @@ def create_prompt(sample: dict) -> str:
     Returns:
         str: A formatted string prompt for the multiple choice question.
     """
-    <ВАШ КОД ЗДЕСЬ>
+    choices = sample["choices"]
+    letters = ["A", "B", "C", "D"]
 
-    return ...
+    result = ("The following are multiple choice questions (with answers) about " + sample["subject"] + ".\n" 
+            + sample["question"] + "\n"
+            )
+    for i in range(len(choices)):
+        result += letters[i] + ". " + choices[i] + "\n"
+
+    result += "Answer:"
+
+    return result
 
 
 def create_prompt_with_examples(sample: dict, examples: list, add_full_example: bool = False) -> str:
@@ -25,6 +34,39 @@ def create_prompt_with_examples(sample: dict, examples: list, add_full_example: 
     Returns:
         str: A formatted string prompt for the multiple choice question with 5 examples.
     """
-    <ВАШ КОД ЗДЕСЬ>
+    result = ""
+    for i in range(len(examples)):
+        example_sample = examples[i]
+        choices = example_sample["choices"]
+        letters = ["A", "B", "C", "D"]
 
-    return <ВАШ КОД ЗДЕСЬ>
+        result += ("The following are multiple choice questions (with answers) about " + example_sample["subject"] + ".\n" 
+                + example_sample["question"] + "\n"
+                )
+
+        for j in range(len(choices)):
+            result += letters[j] + ". " + choices[j] + "\n"
+
+        result += "Answer: "
+        index = example_sample["answer"]
+
+        if add_full_example:
+            result += letters[index] + ". " + choices[index]
+        else:
+            result += letters[index]
+
+        result+= "\n\n"
+
+    choices = sample["choices"]
+    letters = ["A", "B", "C", "D"]
+
+    result += ("The following are multiple choice questions (with answers) about " + sample["subject"] + ".\n" 
+            + sample["question"] + "\n"
+            )
+
+    for i in range(len(choices)):
+        result+= letters[i] + ". " + choices[i] + "\n"
+
+    result += "Answer:"
+
+    return result
