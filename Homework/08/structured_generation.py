@@ -16,7 +16,15 @@ def get_valid_tokens(vocab: dict[int, str], eos_token_id: int, fsm: FSM, state: 
     Returns:
         valid tokens (list): list of possible tokens
     """
-    raise NotImplementedError
+    valid_tokens = []
+
+    for token_id in vocab.keys():
+        if token_id == eos_token_id and fsm.is_terminal(state):
+            valid_tokens.append(token_id)
+        elif fsm.validate_continuation(state, vocab[token_id]):
+            valid_tokens.append(token_id)
+
+    return valid_tokens
 
 
 def random_generation() -> str:
@@ -37,12 +45,16 @@ def random_generation() -> str:
     # Sample until EOS token
     while True:
         # 1. Get valid tokens
-        valid_tokens = ...
+        valid_tokens = get_valid_tokens(vocab, eos_token_id, fsm, state)
         # 2. Get next token
-        next_token = ...
+        next_token = random.choice(valid_tokens)
 
         # 3. End generation or move to next iteration
-        ...
+        if next_token == eos_token_id:
+            break
+        else:
+            tokens.append(next_token)
+            state = fsm.states.index(fsm.states[state].transitions[vocab[next_token]])
 
     # Convert tokens to string
     return "".join([vocab[it] for it in tokens])
