@@ -29,10 +29,25 @@ def eval_reward_model(reward_model, reward_tokenizer, test_dataset, target_label
     >>> print(f"Model accuracy: {accuracy:.2%}")
     """
 
-    raise NotImplementedError
+    batch_size = 32
 
-    # <YOUR CODE HERE>
+    chosen_texts = [sample['text'] for sample in test_dataset if sample['label'] == target_label]
+    rejected_texts = [sample['text'] for sample in test_dataset if sample['label'] != target_label]
 
-    assert len(chosen_reviews) == len(rejected_reviews)
+    assert len(chosen_texts) == len(rejected_texts)
 
-    # <YOUR CODE HERE>
+    def compute_scores_in_batches(texts):
+        scores = []
+        for i in tqdm(range(0, len(texts), batch_size), desc="Processing Batches"):
+            batch_texts = texts[i:i + batch_size]
+            batch_scores = compute_reward(reward_model, reward_tokenizer, batch_texts, device=device)
+            scores.extend(batch_scores)
+        return scores
+
+    chosen_scores = compute_scores_in_batches(chosen_texts)
+    rejected_scores = compute_scores_in_batches(rejected_texts)
+
+    correct_count = sum(c > r for c, r in zip(chosen_scores, rejected_scores))
+    accuracy = correct_count / len(chosen_texts)
+
+    return accuracy
