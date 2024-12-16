@@ -1,11 +1,11 @@
 import pytest
 import os
 import numpy as np
-from search_engine import Document, Indexer, Searcher, load_documents
+from part1.search_engine import Document, Indexer, Searcher, load_documents
 
 @pytest.fixture
 def documents():
-    return load_documents('/Homework/09/data/articles.json')
+    return load_documents('Homework/09/data/articles.json')
 
 def test_load_documents(documents):
     assert len(documents) > 0
