@@ -28,7 +28,18 @@ class FAISSSearcher:
             - Обучить индекс (train)
             - Добавить векторы (add)
         """
-        pass
+        self.documents = documents
+        documents_emb = np.array([self.model.encode((doc.title + " " + doc.text), convert_to_numpy=True) for doc in documents])
+
+        faiss.normalize_L2(documents_emb)
+
+        quantizer = faiss.IndexFlatIP(self.dimension)
+
+        n_clusters = int(np.ceil(np.sqrt(len(documents))))
+        self.index = faiss.IndexIVFFlat(quantizer, self.dimension, n_clusters, faiss.METRIC_INNER_PRODUCT)
+
+        self.index.train(documents_emb)
+        self.index.add(documents_emb)
 
     def save(self, path: str) -> None:
         """
@@ -38,7 +49,8 @@ class FAISSSearcher:
             - documents
             - индекс (faiss.serialize_index)
         """
-        pass
+        with open(path, 'wb') as f:
+            pickle.dump({'documents': self.documents, 'index': faiss.serialize_index(self.index)}, f)
 
     def load(self, path: str) -> None:
         """
@@ -48,7 +60,10 @@ class FAISSSearcher:
             - documents
             - индекс (faiss.deserialize_index)
         """
-        pass
+        with open(path, 'rb') as f:
+            data = pickle.load(f)
+            self.documents = data['documents']
+            self.index = faiss.deserialize_index(data['index'])
 
     def search(self, query: str, top_k: int = 5) -> List[SearchResult]:
         """
@@ -59,7 +74,25 @@ class FAISSSearcher:
         3. Искать через index.search()
         4. Вернуть найденные документы
         """
-        pass
+        query_emb = self.model.encode(query, convert_to_numpy=True)
+        query_emb = query_emb.reshape(1, -1)
+
+        faiss.normalize_L2(query_emb)
+
+        scores, ids = self.index.search(query_emb, top_k)
+
+        results = []
+        for score_k, id_k in zip(scores[0], ids[0]):
+            doc = self.documents[id_k]
+            
+            results.append(SearchResult(
+                doc_id=doc.id,
+                score=score_k,
+                title=doc.title,
+                text=doc.text
+            ))
+
+        return results
 
     def batch_search(self, queries: List[str], top_k: int = 5) -> List[List[SearchResult]]:
         """
@@ -70,4 +103,25 @@ class FAISSSearcher:
         3. Искать через index.search()
         4. Вернуть результаты для каждого запроса
         """
-        pass
+        query_emb = self.model.encode(queries, convert_to_numpy=True)
+
+        faiss.normalize_L2(query_emb)
+
+        scores, ids = self.index.search(query_emb, top_k)
+
+        results = []
+        for q_scores, q_ids in zip(scores, ids):
+            query_results = []
+
+            for score_k, id_k in zip(q_scores, q_ids):
+                doc = self.documents[id_k]
+                query_results.append(SearchResult(
+                    doc_id=doc.id,
+                    score=score_k,
+                    title=doc.title,
+                    text=doc.text
+                ))
+
+            results.append(query_results)
+
+        return results

@@ -47,21 +47,29 @@ class Indexer:
           Подсказка: для каждого документа нужно объединить title и text
        3. Сохранить эмбеддинги в self.embeddings
        """
-       pass
+       self.documents = documents
+
+       documents_embedings = np.array([self.model.encode((doc.title + " " + doc.text), convert_to_numpy=True) for doc in documents])
+
+       self.embeddings = documents_embedings
 
    def save(self, path: str) -> None:
        """
        TODO: Реализовать сохранение индекса
        1. Сохранить self.documents и self.embeddings в pickle файл
        """
-       pass
+       with open(path, 'wb') as f:
+           pickle.dump({'documents': self.documents, 'embeddings': self.embeddings}, f)
 
    def load(self, path: str) -> None:
        """
        TODO: Реализовать загрузку индекса
        1. Загрузить self.documents и self.embeddings из pickle файла
        """
-       pass
+       with open(path, 'rb') as f:
+           data = pickle.load(f)
+           self.documents = data['documents']
+           self.embeddings = data['embeddings']
 
 class Searcher:
    def __init__(self, index_path: str, model_name: str = 'all-MiniLM-L6-v2'):
@@ -71,7 +79,11 @@ class Searcher:
        2. Инициализировать sentence-transformers
        """
        self.model = SentenceTransformer(model_name)
-       pass
+
+       with open(index_path, 'rb') as f:
+           data = pickle.load(f)
+           self.documents = data['documents']
+           self.embeddings = data['embeddings']
 
    def search(self, query: str, top_k: int = 5) -> List[SearchResult]:
        """
@@ -80,4 +92,25 @@ class Searcher:
        2. Вычислить косинусное сходство между запросом и документами
        3. Вернуть top_k наиболее похожих документов
        """
-       pass
+       query_emb = self.model.encode(query, convert_to_numpy=True)
+
+       scores = (np.dot(self.embeddings, query_emb) / 
+                (np.linalg.norm(self.embeddings) * np.linalg.norm(query_emb)))
+
+       top_k_sim_id_not_sorted = np.argpartition(scores, -top_k)[-top_k:]
+       top_k_sim_id_sorted = top_k_sim_id_not_sorted[np.argsort(scores[top_k_sim_id_not_sorted])[::-1]]
+
+       results = []
+
+       for id_k in top_k_sim_id_sorted:
+           doc = self.documents[id_k]
+           results.append(SearchResult(
+               doc_id=doc.id,
+               score=float(scores[id_k]),
+               title=doc.title,
+               text=doc.text
+           ))
+
+       return results
+
+
